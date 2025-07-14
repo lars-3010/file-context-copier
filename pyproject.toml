@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "file-context-copier"
+version = "0.1.0"
+description = "A Python CLI tool for interactively selecting project files/folders and copying their content to clipboard as markdown code blocks with proper language detection."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Lars Boes", email = "lars.boes@gmx.de" }
+]
+dependencies = [
+    "pathspec>=0.12.1",
+    "pyperclip>=1.9.0",
+    "rich>=14.0.0",
+    "textual>=4.0.0",
+    "typer>=0.16.0",
+]
+
+[project.scripts]
+fcc = "file_context_copier.app:cli"
+
+[project.optional-dependencies]
+dev = [
+    "black>=25.1.0",
+    "pytest>=8.4.1",
+    "ruff>=0.12.3",
+]
+
+[tool.setuptools]
+packages = ["file_context_copier"]
+package-dir = {"" = "src"}
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
