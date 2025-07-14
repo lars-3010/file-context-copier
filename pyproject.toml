@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
 authors = [
-    { name = "Lars Boes", email = "lars.boes@gmx.de" }
+    { name = "Lars Boes" }
 ]
 dependencies = [
     "pathspec>=0.12.1",

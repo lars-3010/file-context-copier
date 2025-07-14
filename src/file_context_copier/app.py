@@ -1,5 +1,6 @@
 """Main application for file-context-copier."""
 
+import logging
 import os
 import pathlib
 from typing import Iterable
@@ -13,6 +14,8 @@ from pathspec.patterns import GitWildMatchPattern
 from rich.markdown import Markdown
 from textual.app import App, ComposeResult
 from textual.widgets import Button, DirectoryTree, Footer, Header, Static
+
+logging.basicConfig(filename="fcc.log", level=logging.DEBUG)
 
 
 class SelectableDirectoryTree(DirectoryTree):
@@ -49,6 +52,7 @@ class FileContextCopier(App):
 
     def __init__(self, path: str, output_file: str | None = None, *args, **kwargs) -> None:
         """Initialise the app."""
+        logging.debug(f"Initialising FileContextCopier with path: {path} and output_file: {output_file}")
         self.path = path
         self.output_file = output_file
         self.spec = self._get_gitignore_spec(path)
@@ -56,14 +60,20 @@ class FileContextCopier(App):
 
     def _get_gitignore_spec(self, path: str) -> PathSpec:
         """Get the .gitignore spec for the given path."""
+        logging.debug(f"Getting .gitignore spec for path: {path}")
         gitignore_path = os.path.join(path, ".gitignore")
         if os.path.exists(gitignore_path):
+            logging.debug(f".gitignore found at: {gitignore_path}")
             with open(gitignore_path) as f:
-                return PathSpec.from_lines(GitWildMatchPattern, f.readlines())
+                spec = PathSpec.from_lines(GitWildMatchPattern, f.readlines())
+                logging.debug(f"Loaded .gitignore spec: {spec.patterns}")
+                return spec
+        logging.debug("No .gitignore found.")
         return PathSpec.from_lines(GitWildMatchPattern, [])
 
     def compose(self) -> ComposeResult:
         """Create child widgets for the app."""
+        logging.debug("Composing app widgets.")
         yield Header()
         yield SelectableDirectoryTree(self.path, self.spec)
         yield Button("Copy to Clipboard", id="copy")
@@ -72,63 +82,88 @@ class FileContextCopier(App):
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
+        logging.debug(f"Button pressed: {event.button.id}")
         if event.button.id == "copy":
             self.action_copy_to_clipboard()
 
     def action_toggle_files(self) -> None:
         """Toggle the display of files."""
+        logging.debug("Toggling file display.")
         tree = self.query_one(SelectableDirectoryTree)
         tree.show_files = not tree.show_files
 
     def action_copy_to_clipboard(self) -> None:
         """Copy the content of selected files to the clipboard."""
+        logging.debug("Copy to clipboard action initiated.")
         tree = self.query_one(SelectableDirectoryTree)
         selected_paths = tree.selected_nodes
+        logging.debug(f"Selected paths: {selected_paths}")
         if not selected_paths:
             self.query_one("#status").update("No files or folders selected.")
+            logging.info("No files or folders selected.")
             return
 
         content = self._get_content(selected_paths)
+        logging.debug(f"Aggregated content keys: {content.keys()}")
         formatted_content = self._format_content(content)
+        logging.debug("Content formatted.")
 
         if self.output_file:
+            logging.debug(f"Writing to output file: {self.output_file}")
             try:
                 with open(self.output_file, "w") as f:
                     f.write(formatted_content)
                 self.query_one("#status").update(f"Content written to {self.output_file}")
+                logging.info(f"Content written to {self.output_file}")
             except Exception as e:
                 self.query_one("#status").update(f"Error writing to {self.output_file}: {e}")
+                logging.error(f"Error writing to {self.output_file}: {e}")
         else:
+            logging.debug("Copying to clipboard.")
             pyperclip.copy(formatted_content)
             self.query_one("#status").update("Content copied to clipboard!")
+            logging.info("Content copied to clipboard!")
 
     def _get_content(self, paths: set[pathlib.Path]) -> dict[str, str]:
         """Get the content of the selected files."""
+        logging.debug(f"Getting content for paths: {paths}")
         content = {}
         for path in paths:
+            logging.debug(f"Processing path: {path}")
             if path.is_file():
                 try:
-                    content[str(path)] = path.read_text()
+                    file_content = path.read_text()
+                    content[str(path)] = file_content
+                    logging.debug(f"Read file: {path}")
                 except Exception as e:
                     self.query_one("#status").update(f"Error reading {path}: {e}")
+                    logging.error(f"Error reading {path}: {e}")
             elif path.is_dir():
+                logging.debug(f"Walking directory: {path}")
                 for root, _, files in os.walk(path):
                     for file in files:
                         file_path = pathlib.Path(root) / file
                         if not self.spec.match_file(str(file_path)):
                             try:
-                                content[str(file_path)] = file_path.read_text()
+                                file_content = file_path.read_text()
+                                content[str(file_path)] = file_content
+                                logging.debug(f"Read file in directory: {file_path}")
                             except Exception as e:
                                 self.query_one("#status").update(
                                     f"Error reading {file_path}: {e}"
                                 )
+                                logging.error(f"Error reading {file_path}: {e}")
+                        else:
+                            logging.debug(f"Ignoring file due to .gitignore: {file_path}")
         return content
 
     def _format_content(self, content: dict[str, str]) -> str:
         """Format the content as markdown code blocks."""
+        logging.debug("Formatting content.")
         formatted_blocks = []
         for path, text in content.items():
             language = self._detect_language(path)
+            logging.debug(f"Detected language for {path}: {language}")
             formatted_blocks.append(f'''**{path}**
 
 ````{language}
@@ -139,7 +174,7 @@ class FileContextCopier(App):
     def _detect_language(self, path: str) -> str:
         """Detect the programming language of a file."""
         ext = os.path.splitext(path)[1]
-        return {
+        language = {
             ".py": "python",
             ".js": "javascript",
             ".ts": "typescript",
@@ -292,8 +327,14 @@ class FileContextCopier(App):
             ".cpy": "cobol",
             ".jcl": "jcl"
         }.get(ext, "")
+        logging.debug(f"Detected language for extension {ext}: {language}")
+        return language
 
 
+app = typer.Typer()
+
+
+@app.command()
 def main(
     path: str = typer.Argument(
         ".", help="The starting directory to display."
@@ -303,8 +344,9 @@ def main(
     ),
 ) -> None:
     """A Python CLI tool for interactively selecting project files/folders and copying their content to clipboard as markdown code blocks with proper language detection."""
-    app = FileContextCopier(path, output_file)
-    app.run()
+    logging.info(f"CLI tool started with path: {path} and output_file: {output_file}")
+    copier_app = FileContextCopier(path, output_file)
+    copier_app.run()
 
 
 if __name__ == "__main__":
