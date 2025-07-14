@@ -21,7 +21,8 @@ dependencies = [
 ]
 
 [project.scripts]
-fcc = "file_context_copier.app:cli"
+# Corrected the entry point to point to 'app' instead of 'cli'
+fcc = "file_context_copier.app:app"
 
 [project.optional-dependencies]
 dev = [
