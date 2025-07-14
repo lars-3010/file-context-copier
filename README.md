@@ -3,7 +3,7 @@
 ![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
 ![Security](https://img.shields.io/badge/security-hardened-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.8+-brightgreen.svg)
+![Python](https://img.shields.io/badge/python-3.11+-brightgreen.svg)
 ![Status](https://img.shields.io/badge/status-production%20ready-green.svg)
 ![Slash Commands](https://img.shields.io/badge/slash%20commands-20+-orange.svg)
 
@@ -28,17 +28,25 @@ It's the perfect developer utility for grabbing the context of a project to shar
 This project uses uv for package management.
 
 1. **Clone the repository:**  
+   ```
    git clone \<your-repo-url\>  
    cd file-context-copier
+```
 
 2. **Create a virtual environment:**  
-   uv venv
+   ```
+uv venv
+```
 
 3. **Activate the virtual environment:**  
-   source .venv/bin/activate
+   ```
+source .venv/bin/activate
+```
 
 4. **Install the project in editable mode:**  
-   uv pip install \-e .
+   ```
+uv pip install \-e .
+```
 
    The tool is now installed. You can run it using the fcc command from within the activated environment.
 
@@ -50,17 +58,23 @@ Once the virtual environment is activated, you can use the fcc command.
 
 To open the interactive selector in the current directory and copy the combined content of your selections to the clipboard, simply run:
 
+```
 fcc
+```
 
 #### **Targeting a Different Project**
 
 To run the tool on a different project, pass its path as an argument:
 
+```
 fcc /path/to/another/project
+```
 
 *Example:*
 
+```
 fcc \~/Developer/Projects/Jarvis-Assistant
+```
 
 ### **Output Options**
 
@@ -68,27 +82,37 @@ fcc \~/Developer/Projects/Jarvis-Assistant
 
 To save the combined context of all selected items into a single file:
 
+```
 fcc \--output-file context.md
+```
 
 #### **Save to a Directory (One File Per Selection)**
 
 This is the most powerful feature for archiving or sharing complex contexts. It saves the context for each of your top-level selections into its own file inside a specified directory.
 
+```
 fcc \--output-dir /path/to/output/directory
+```
 
 *Example: Save context from two folders into \~/Developer/Resources/*
 
 \# This will create src.md and tests.md inside the Resources folder  
+```
 fcc \--output-dir \~/Developer/Resources/
+```
 
 #### **Save as .txt Files**
 
 When using \--output-dir, you can choose to save the files as .txt instead of the default .md.
 
+```
 fcc \--output-dir ./output \--as-txt
+```
 
 ### **Deactivating the Environment**
 
 When you are finished using the tool, you can deactivate the virtual environment:
 
-deactivate  
+```
+deactivate
+```
