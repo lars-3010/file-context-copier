@@ -28,27 +28,27 @@ It's the perfect developer utility for grabbing the context of a project to shar
 This project uses uv for package management.
 
 1. **Clone the repository:**  
-   ```
+```
    git clone \<your-repo-url\>  
    cd file-context-copier
 ```
 
 2. **Create a virtual environment:**  
-   ```
+```
 uv venv
 ```
 
 3. **Activate the virtual environment:**  
-   ```
+```
 source .venv/bin/activate
 ```
 
-4. **Install the project in editable mode:**  
-   ```
+1. **Install the project in editable mode:**  
+```
 uv pip install \-e .
 ```
 
-   The tool is now installed. You can run it using the fcc command from within the activated environment.
+The tool is now installed. You can run it using the fcc command from within the activated environment.
 
 ## **Usage**
 
