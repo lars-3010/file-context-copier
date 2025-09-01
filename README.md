@@ -16,6 +16,7 @@ It's the perfect developer utility for grabbing the context of a project to shar
 * **Interactive TUI:** A Textual-based terminal user interface for easy file and folder selection.  
 * **Directory Tree:** A navigable directory tree with checkboxes for quick selection.  
 * **Smart Filtering:** Automatically ignores files and folders listed in your .gitignore file.  
+* **Jupyter Notebook Support:** Seamlessly converts `.ipynb` files to clean markdown format with proper syntax highlighting.
 * **Robust File Handling:** Gracefully skips binary files and other non-text content that can't be read.  
 * **Flexible Output Modes:**  
   * Copy a combined context to the clipboard (default).  
@@ -75,6 +76,24 @@ fcc /path/to/another/project
 ```
 fcc \~/Developer/Projects/Jarvis-Assistant
 ```
+
+#### **Working with Jupyter Notebooks**
+
+The tool now supports Jupyter notebooks (`.ipynb` files) out of the box! When you select a notebook, it will be automatically converted to clean markdown format:
+
+```
+# Convert a data analysis notebook to text file
+fcc ~/Developer/Projects/Data-Analysis/ --output-file analysis.txt
+
+# Archive multiple notebooks from a research project  
+fcc ~/Research/ML-Project/ --output-dir ./notebook-archive/
+```
+
+**What you get:**
+- Clean markdown with proper code block syntax highlighting
+- Preserved cell structure (markdown cells, code cells, raw cells)
+- Automatic kernel language detection (Python, R, Julia, etc.)
+- No messy JSON or metadata - just the readable content
 
 ### **Output Options**
 
