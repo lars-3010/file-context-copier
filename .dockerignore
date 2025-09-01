@@ -1,0 +1,51 @@
+# Git
+.git/
+.gitignore
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.tox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+*.cover
+.hypothesis/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+*.log
+test_output.*
+analysis.txt
+PLAN.md
+README.md
+file-context-copier.md
+
+# Test files
+tests/
+.pytest_cache/
+
+# Development tools
+.ruff_cache/
+.claude/

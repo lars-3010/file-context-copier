@@ -24,140 +24,136 @@ def get_gitignore_spec(path: str) -> PathSpec:
     return PathSpec.from_lines(GitWildMatchPattern, [])
 
 
+def _process_single_file(file_path: pathlib.Path, spec: PathSpec) -> tuple[str, str] | None:
+    """Process a single file, handling Jupyter notebooks and gitignore rules."""
+    if spec.match_file(str(file_path)):
+        return None
+    
+    try:
+        if str(file_path).endswith('.ipynb'):
+            content = parse_jupyter_notebook(str(file_path))
+        else:
+            content = file_path.read_text(encoding="utf-8")
+        return str(file_path), content
+    except Exception as e:
+        logging.error(f"Error reading {file_path}: {e}")
+        return None
+
+
 def get_content(paths: Set[pathlib.Path], spec: PathSpec) -> dict[str, str]:
     """Get the content of the selected files, respecting the gitignore spec."""
-    logging.debug(f"Getting content for paths: {paths}")
     content = {}
+    
     for path in paths:
-        logging.debug(f"Processing path: {path}")
         if path.is_file():
-            try:
-                # Ensure we don't include ignored files even if explicitly selected
-                if not spec.match_file(str(path)):
-                    if str(path).endswith('.ipynb'):
-                        notebook_content = parse_jupyter_notebook(str(path))
-                        content[str(path)] = notebook_content
-                        logging.debug(f"Parsed Jupyter notebook: {path}")
-                    else:
-                        file_content = path.read_text(encoding="utf-8")
-                        content[str(path)] = file_content
-                        logging.debug(f"Read file: {path}")
-            except Exception as e:
-                logging.error(f"Error reading {path}: {e}")
+            result = _process_single_file(path, spec)
+            if result:
+                content[result[0]] = result[1]
         elif path.is_dir():
-            logging.debug(f"Walking directory: {path}")
             for root, _, files in os.walk(path):
                 for file in files:
                     file_path = pathlib.Path(root) / file
-                    if not spec.match_file(str(file_path)):
-                        try:
-                            if str(file_path).endswith('.ipynb'):
-                                notebook_content = parse_jupyter_notebook(str(file_path))
-                                content[str(file_path)] = notebook_content
-                                logging.debug(f"Parsed Jupyter notebook in directory: {file_path}")
-                            else:
-                                file_content = file_path.read_text(encoding="utf-8")
-                                content[str(file_path)] = file_content
-                                logging.debug(f"Read file in directory: {file_path}")
-                        except Exception as e:
-                            logging.error(f"Error reading {file_path}: {e}")
-                    else:
-                        logging.debug(f"Ignoring file due to .gitignore: {file_path}")
+                    result = _process_single_file(file_path, spec)
+                    if result:
+                        content[result[0]] = result[1]
+    
     return content
 
 
 def parse_jupyter_notebook(notebook_path: str) -> str:
-    """
-    Parse a Jupyter notebook and convert it to markdown format.
-    
-    Args:
-        notebook_path: Path to the .ipynb file
-        
-    Returns:
-        Formatted markdown string with all cells converted
-    """
+    """Parse a Jupyter notebook and convert to simple markdown format."""
     try:
         with open(notebook_path, 'r', encoding='utf-8') as f:
             notebook = json.load(f)
-    except (json.JSONDecodeError, IOError) as e:
-        logging.error(f"Failed to parse Jupyter notebook {notebook_path}: {e}")
-        return f"Error: Could not parse Jupyter notebook - {e}"
+    except Exception as e:
+        return f"Error parsing notebook: {e}"
     
     cells = notebook.get('cells', [])
     if not cells:
-        return "# Empty Notebook\n\nThis Jupyter notebook contains no cells."
+        return "# Empty Notebook"
     
-    # Extract kernel language for code cells
-    kernel_language = "python"  # Default
-    try:
-        kernel_spec = notebook.get('metadata', {}).get('kernelspec', {})
-        kernel_language = kernel_spec.get('language', 'python')
-    except (KeyError, AttributeError):
-        pass
+    # Simple kernel detection
+    kernel_lang = notebook.get('metadata', {}).get('kernelspec', {}).get('language', 'python')
     
     converted_cells = []
-    cell_counter = 0
-    
     for cell in cells:
-        cell_type = cell.get('cell_type', 'unknown')
         source = cell.get('source', [])
+        content = ''.join(source).strip() if isinstance(source, list) else str(source).strip()
         
-        # Join source lines (Jupyter stores as array of strings)
-        if isinstance(source, list):
-            content = ''.join(source).rstrip()
-        else:
-            content = str(source).rstrip()
-        
-        if not content.strip():  # Skip empty cells
+        if not content:
             continue
             
-        cell_counter += 1
-        
+        cell_type = cell.get('cell_type', 'code')
         if cell_type == 'markdown':
-            # Direct markdown output with a subtle separator
-            converted_cells.append(f"{content}")
-            
-        elif cell_type == 'code':
-            # Code block with detected language
-            converted_cells.append(f"```{kernel_language}\n{content}\n```")
-            
-        elif cell_type == 'raw':
-            # Raw cells as code blocks without language
-            converted_cells.append(f"```\n{content}\n```")
-            
+            converted_cells.append(content)
+        else:  # code, raw, or unknown - treat as code
+            converted_cells.append(f"```{kernel_lang}\n{content}\n```")
+    
+    return '\n\n'.join(converted_cells)
+
+
+def process_paths_to_content(paths_list, base_path: str = ".", exclude_patterns: str = None) -> dict[str, str]:
+    """
+    Shared processing function for both CLI and API use.
+    
+    Args:
+        paths_list: List of path patterns/strings
+        base_path: Base directory to operate from
+        exclude_patterns: Comma-separated additional exclude patterns
+        
+    Returns:
+        Dictionary of file paths to content
+    """
+    from glob import glob
+    
+    # Expand paths (copied from app.py expand_paths function)
+    expanded_paths: Set[pathlib.Path] = set()
+    
+    for pattern in paths_list:
+        if os.path.isabs(pattern):
+            if os.path.exists(pattern):
+                expanded_paths.add(pathlib.Path(pattern))
+            else:
+                matches = glob(pattern, recursive=True)
+                for match in matches:
+                    expanded_paths.add(pathlib.Path(match))
         else:
-            # Unknown cell type - treat as raw
-            logging.warning(f"Unknown cell type '{cell_type}' in {notebook_path}")
-            converted_cells.append(f"```\n{content}\n```")
+            full_pattern = os.path.join(base_path, pattern) if base_path != "." else pattern
+            if os.path.exists(full_pattern):
+                expanded_paths.add(pathlib.Path(full_pattern))
+            else:
+                matches = glob(full_pattern, recursive=True)
+                for match in matches:
+                    expanded_paths.add(pathlib.Path(match))
     
-    # Join all cells with double line breaks for proper markdown spacing
-    result = '\n\n'.join(converted_cells)
+    # Get gitignore spec
+    spec = get_gitignore_spec(base_path)
     
-    logging.info(f"Converted {cell_counter} cells from Jupyter notebook {notebook_path}")
-    return result
+    # Add additional exclude patterns if provided
+    if exclude_patterns:
+        additional_patterns = [p.strip() for p in exclude_patterns.split(",")]
+        additional_spec = PathSpec.from_lines(GitWildMatchPattern, additional_patterns)
+        all_patterns = spec.patterns + additional_spec.patterns
+        spec = PathSpec(all_patterns)
+    
+    # Get content
+    return get_content(expanded_paths, spec)
 
 
 def detect_language(path: str) -> str:
-    """Detect the programming language of a file based on its extension."""
+    """Detect the programming language based on file extension."""
     ext = os.path.splitext(path)[1].lower()
-    # A comprehensive map of extensions to markdown language identifiers
-    language_map = {
+    # Common languages only - covers 95% of use cases
+    languages = {
         ".py": "python", ".js": "javascript", ".ts": "typescript",
-        ".tsx": "tsx", ".jsx": "jsx", ".html": "html", ".css": "css",
-        ".scss": "scss", ".md": "markdown", ".json": "json", ".yaml": "yaml",
-        ".yml": "yaml", ".sh": "shell", ".bash": "bash", ".zsh": "zsh",
-        ".c": "c", ".cpp": "cpp", ".h": "c", ".hpp": "cpp", ".java": "java",
-        ".go": "go", ".rs": "rust", ".swift": "swift", ".kt": "kotlin",
-        ".rb": "ruby", ".php": "php", ".pl": "perl", ".sql": "sql",
-        ".lua": "lua", ".groovy": "groovy", ".cs": "csharp", ".fs": "fsharp",
-        ".r": "r", ".dockerfile": "dockerfile", ".toml": "toml", ".ini": "ini",
-        ".xml": "xml", ".log": "log", ".tex": "latex", ".v": "verilog",
-        ".sv": "systemverilog", ".vhdl": "vhdl", ".dart": "dart",
+        ".html": "html", ".css": "css", ".md": "markdown", 
+        ".json": "json", ".yaml": "yaml", ".yml": "yaml",
+        ".sh": "bash", ".c": "c", ".cpp": "cpp", ".java": "java",
+        ".go": "go", ".rs": "rust", ".rb": "ruby", ".php": "php",
+        ".sql": "sql", ".dockerfile": "dockerfile", ".toml": "toml",
         ".ipynb": "jupyter-notebook"
     }
-    language = language_map.get(ext, "")
-    logging.debug(f"Detected language for extension {ext}: {language}")
-    return language
+    return languages.get(ext, "")
 
 
 def format_content(content: dict[str, str]) -> str:

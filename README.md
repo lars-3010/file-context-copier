@@ -1,137 +1,135 @@
-# **File Context Copier**
+# File Context Copier
 
-![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
-![Security](https://img.shields.io/badge/security-hardened-green.svg)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Python](https://img.shields.io/badge/python-3.11+-brightgreen.svg)
-![Status](https://img.shields.io/badge/status-production%20ready-green.svg)
-![Slash Commands](https://img.shields.io/badge/slash%20commands-20+-orange.svg)
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![CLI](https://img.shields.io/badge/interface-CLI-orange.svg)
 
-A Python CLI tool for interactively selecting project files and folders to copy their contents into a single, clipboard-ready context or into structured output files.
+A fast CLI tool for copying project file contents to clipboard or files as formatted markdown. Perfect for sharing code context with AI, colleagues, or documentation.
 
-It's the perfect developer utility for grabbing the context of a project to share with a colleague, feed to an AI, or archive.
+**✨ Key Features:** Glob patterns • Jupyter notebooks • Docker support • Background service
 
-## **Features**
+## Quick Start
 
-* **Interactive TUI:** A Textual-based terminal user interface for easy file and folder selection.  
-* **Directory Tree:** A navigable directory tree with checkboxes for quick selection.  
-* **Smart Filtering:** Automatically ignores files and folders listed in your .gitignore file.  
-* **Jupyter Notebook Support:** Seamlessly converts `.ipynb` files to clean markdown format with proper syntax highlighting.
-* **Robust File Handling:** Gracefully skips binary files and other non-text content that can't be read.  
-* **Flexible Output Modes:**  
-  * Copy a combined context to the clipboard (default).  
-  * Save the combined context to a single file.  
-  * Save the context of each selected item to a separate file in a specified directory.  
-* **Customizable File Types:** Choose to save output files as .md (default) or .txt.
+```bash
+# Install
+uv venv && source .venv/bin/activate
+uv pip install -e .
 
-## **Installation**
-
-This project uses uv for package management.
-
-1. **Clone the repository:**  
-```
-   git clone \<your-repo-url\>  
-   cd file-context-copier
-```
-
-2. **Create a virtual environment:**  
-```
-uv venv
-```
-
-3. **Activate the virtual environment:**  
-```
-source .venv/bin/activate
-```
-
-1. **Install the project in editable mode:**  
-```
-uv pip install \-e .
-```
-
-The tool is now installed. You can run it using the fcc command from within the activated environment.
-
-## **Usage**
-
-Once the virtual environment is activated, you can use the fcc command.
-
-#### **Basic Usage (Copy to Clipboard)**
-
-To open the interactive selector in the current directory and copy the combined content of your selections to the clipboard, simply run:
-
-```
+# Basic usage - copy current directory to clipboard  
 fcc
+
+# Copy specific files/folders
+fcc src/ README.md
+
+# Use glob patterns
+fcc "**/*.py" "**/*.md"
+
+# Save to file instead of clipboard
+fcc src/ --output-file context.md
 ```
 
-#### **Targeting a Different Project**
+## Installation
 
-To run the tool on a different project, pass its path as an argument:
+**Requirements:** Python 3.11+, [uv](https://docs.astral.sh/uv/) package manager
 
-```
-fcc /path/to/another/project
-```
-
-*Example:*
-
-```
-fcc \~/Developer/Projects/Jarvis-Assistant
+```bash
+git clone <your-repo-url>
+cd file-context-copier
+uv venv && source .venv/bin/activate
+uv pip install -e .
 ```
 
-#### **Working with Jupyter Notebooks**
-
-The tool now supports Jupyter notebooks (`.ipynb` files) out of the box! When you select a notebook, it will be automatically converted to clean markdown format:
-
-```
-# Convert a data analysis notebook to text file
-fcc ~/Developer/Projects/Data-Analysis/ --output-file analysis.txt
-
-# Archive multiple notebooks from a research project  
-fcc ~/Research/ML-Project/ --output-dir ./notebook-archive/
+**Optional dependencies:**
+```bash
+uv pip install -e '.[clipboard]'  # For clipboard support
+uv pip install -e '.[service]'   # For HTTP API server
 ```
 
-**What you get:**
-- Clean markdown with proper code block syntax highlighting
-- Preserved cell structure (markdown cells, code cells, raw cells)
-- Automatic kernel language detection (Python, R, Julia, etc.)
-- No messy JSON or metadata - just the readable content
+## Usage
 
-### **Output Options**
+### Common Patterns
 
-#### **Save to a Single File**
+```bash
+# Current directory to clipboard
+fcc
 
-To save the combined context of all selected items into a single file:
+# Specific files and folders  
+fcc src/ tests/ README.md
 
-```
-fcc \--output-file context.md
-```
+# Glob patterns for file selection
+fcc "**/*.py" "**/*.md" "src/**/*.ts"
 
-#### **Save to a Directory (One File Per Selection)**
+# Different base directory
+fcc --base-path ~/my-project src/ tests/
 
-This is the most powerful feature for archiving or sharing complex contexts. It saves the context for each of your top-level selections into its own file inside a specified directory.
-
-```
-fcc \--output-dir /path/to/output/directory
+# Additional exclusions beyond .gitignore
+fcc . --exclude "*.log,tmp/,**/__pycache__/**"
 ```
 
-*Example: Save context from two folders into \~/Developer/Resources/*
+### Output Options
 
-\# This will create src.md and tests.md inside the Resources folder  
-```
-fcc \--output-dir \~/Developer/Resources/
-```
+```bash
+# Save to single file
+fcc src/ --output-file context.md
 
-#### **Save as .txt Files**
+# Save each selection to separate files
+fcc src/ tests/ --output-dir ./output/
 
-When using \--output-dir, you can choose to save the files as .txt instead of the default .md.
-
-```
-fcc \--output-dir ./output \--as-txt
+# Save as .txt files instead of .md
+fcc src/ --output-dir ./output/ --as-txt
 ```
 
-### **Deactivating the Environment**
+### Jupyter Notebook Support
 
-When you are finished using the tool, you can deactivate the virtual environment:
+Automatically converts `.ipynb` files to clean markdown:
+- Preserves cell structure (markdown → markdown, code → code blocks)  
+- Detects kernel language (Python, R, Julia, etc.)
+- No messy JSON metadata
 
+## Background Service Mode
+
+Run as HTTP API service for remote operation and Docker deployment.
+
+```bash
+# Install service dependencies
+uv pip install -e '.[service]'
+
+# Start HTTP API server
+fcc serve --host 0.0.0.0 --port 8000
+
+# Or run with Docker
+docker-compose up -d
 ```
-deactivate
+
+**API endpoints:**
+- `GET /health` - Health check
+- `POST /process` - Process files and return content
+
+**Example API usage:**
+```bash
+curl -X POST http://localhost:8000/process \
+  -H "Content-Type: application/json" \
+  -d '{"paths": ["src/**/*.py"], "base_path": "/workspace"}'
+```
+
+## Essential Commands
+
+```bash
+# Help
+fcc --help
+
+# Most common usage - current dir to clipboard
+fcc  
+
+# Copy specific files
+fcc src/ README.md
+
+# Use patterns  
+fcc "**/*.py"
+
+# Save to file
+fcc src/ -o context.md
+
+# Run as service
+fcc serve
 ```
