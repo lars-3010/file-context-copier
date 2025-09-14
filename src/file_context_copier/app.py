@@ -242,6 +242,32 @@ def serve(
 
 
 @app.command()
+def process(
+    paths: List[str] = typer.Argument(
+        help="Files/folders to include. Supports glob patterns."
+    ),
+    output_file: Optional[str] = typer.Option(
+        None, "-o", "--output-file",
+        help="Output file path. If not provided, copies to clipboard."
+    ),
+    format: str = typer.Option(
+        "markdown", "-f", "--format",
+        help="Output format (markdown or txt)."
+    ),
+    base_path: str = typer.Option(
+        ".", "--base-path", "-p",
+        help="Base directory to operate in."
+    ),
+    exclude: Optional[str] = typer.Option(
+        None, "-e", "--exclude",
+        help="Additional exclude patterns (comma-separated)."
+    ),
+) -> None:
+    """Process files with specified format."""
+    _process_format(format, paths, output_file, base_path, exclude, None)
+
+
+@app.command()
 def formats() -> None:
     """List available output formats."""
     print("Available output formats:")

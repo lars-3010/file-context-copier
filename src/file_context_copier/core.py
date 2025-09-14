@@ -34,6 +34,10 @@ def _process_single_file(file_path: pathlib.Path, spec: PathSpec) -> tuple[str, 
             content = parse_jupyter_notebook(str(file_path))
         else:
             content = file_path.read_text(encoding="utf-8")
+        
+        # Clean invalid Unicode characters (surrogates) that can cause encoding errors
+        content = content.encode('utf-8', errors='ignore').decode('utf-8')
+        
         return str(file_path), content
     except Exception as e:
         logging.error(f"Error reading {file_path}: {e}")
